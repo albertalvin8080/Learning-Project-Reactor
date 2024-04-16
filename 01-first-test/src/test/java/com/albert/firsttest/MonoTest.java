@@ -9,7 +9,7 @@ import reactor.test.StepVerifier;
 * Note to self: remember to see the theoretical concepts in your notebook.
 * */
 @Slf4j
-public class AppTest
+public class MonoTest
 {
     private final String text = "Gena";
 
@@ -129,12 +129,12 @@ public class AppTest
         final String fallbackValue = "Fallback Value";
 
         final Mono<Object> mono = Mono.error(new IllegalArgumentException("It's what it says."))
-                .doOnError(e -> log.info("ERROR: {}", e.getMessage()))
+                .doOnError(e -> log.info("ERROR 1: {}", e.getMessage()))
                 // first fallback
                 .onErrorReturn(fallbackValue)
                 .flatMap(s -> Mono.error(new RuntimeException("Check the documentation.")))
                 // second fallback
-                .onErrorResume(e -> {
+                .onErrorResume(RuntimeException.class, e -> {
                     log.info("ERROR 2: {}", e.getMessage());
                     return Mono.just(fallbackValue);
                 })
