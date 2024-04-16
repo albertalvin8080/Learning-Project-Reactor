@@ -2,12 +2,12 @@ package com.albert.firsttest;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscription;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.time.Duration;
-
+/*
+* Note to self: remember to see the theoretical concepts in your notebook.
+* */
 @Slf4j
 public class AppTest
 {
@@ -62,17 +62,18 @@ public class AppTest
     @Test
     void Mono_CompleteConsumer() {
         final Mono<String> mono = Mono.just(text)
+                .map(String::toUpperCase)
                 .log();
 
         mono.subscribe(
                 s -> log.info("Value: {}", s),
                 Throwable::printStackTrace,
-                () -> log.info("COMPLETED")
+                () -> log.info("COMPLETED") // complete consumer
         );
         log.info("---------------------------------------------------------");
 
         StepVerifier.create(mono)
-                .expectNext(text)
+                .expectNext(text.toUpperCase())
                 .verifyComplete();
     }
 
@@ -80,11 +81,13 @@ public class AppTest
     void Mono_SubscriptionConsumer() {
         final Mono<String> mono = Mono.just(text).log();
 
+        // Note: we're trying to test the Subscriber here, not the Publisher.
         mono.subscribe(
-                s -> log.info("Value: {}", s),
+                str -> log.info("Value: {}", str),
                 Throwable::printStackTrace,
                 () -> log.info("COMPLETED"),
-                Subscription::cancel
+//                Subscription::cancel            // subscription consumer
+                s -> s.request(5)
         );
         log.info("---------------------------------------------------------");
 
@@ -92,8 +95,53 @@ public class AppTest
         // However, since the subscription was cancelled prematurely, the Mono is unable to complete
         // as expected. This discrepancy causes the program to hang or “get stuck” because
         // verifyComplete() is waiting for a completion signal that will never come.
+//        StepVerifier.create(mono)
+//                .consumeSubscriptionWith(Subscription::cancel)
+//                .verifyComplete();
+    }
+
+    @Test
+    void Mono_DoOnSubscribe_Request_Next_Success() {
+        final Mono<String> mono = Mono.just(text)
+                .doOnSubscribe(s -> log.info("SUBSCRIBED: {}", s))
+                .doOnRequest(l -> log.info("REQUESTED: {}", l))
+                .map(String::toLowerCase)
+                .doOnNext(s -> log.info("NEXT: {}", s))
+                .doOnSuccess(s -> log.info("SUCCESS: {}", s));
+
         StepVerifier.create(mono)
-                .consumeSubscriptionWith(Subscription::cancel)
+                .expectNext(text.toLowerCase())
+                .verifyComplete();
+    }
+
+    @Test
+    void Mono_DoOnError() {
+        final Mono<Object> mono = Mono.error(new IllegalArgumentException("It's what it says."))
+                .doOnError(e -> log.info("ERROR: {}", e.getMessage()));
+
+        StepVerifier.create(mono)
+                .expectError(IllegalArgumentException.class)
+                .verify();
+    }
+
+    @Test
+    void Mono_OnErrorReturn_OnErrorResume() {
+        final String fallbackValue = "Fallback Value";
+
+        final Mono<Object> mono = Mono.error(new IllegalArgumentException("It's what it says."))
+                .doOnError(e -> log.info("ERROR: {}", e.getMessage()))
+                // first fallback
+                .onErrorReturn(fallbackValue)
+                .flatMap(s -> Mono.error(new RuntimeException("Check the documentation.")))
+                // second fallback
+                .onErrorResume(e -> {
+                    log.info("ERROR 2: {}", e.getMessage());
+                    return Mono.just(fallbackValue);
+                })
+                .log();
+
+        StepVerifier.create(mono)
+                .expectNext(fallbackValue)
                 .verifyComplete();
     }
 }
