@@ -81,7 +81,7 @@ public class FluxTest {
 
             @Override
             public void onError(Throwable t) {
-
+                log.error("OH NO");
             }
 
             @Override
@@ -123,7 +123,7 @@ public class FluxTest {
     void Flux_LimitRate() {
         final Flux<Integer> flux = Flux.range(1, 5)
                 .log()
-                .limitRate(3); // Needs to come after log(). Sets the limit of each request(n) to limitRate(n)
+                .limitRate(3); // Needs to come after log(). Sets the limit of each request(n) to limitRate(n).
 
         StepVerifier.create(flux)
                 .expectNext(1, 2, 3, 4, 5)
@@ -144,15 +144,16 @@ public class FluxTest {
 
     @Test
     void Flux_Interval_VirtualTime() {
-        // The Flux<> MUST be created inside withVirtualTime(), otherwise the
-        // method won't know if the Scheduler was created appropriately
+        // withVirtualTime(...) is used so we don't need to wait for the interval in real time.
+        // The Flux<> MUST be created inside withVirtualTime(...), otherwise, the
+        // method won't know if the Scheduler was created appropriately.
         StepVerifier.withVirtualTime(this::createFluxInterval)
                 .expectSubscription()
                 .expectNoEvent(Duration.ofHours(24)) // makes sure there are no events before the stipulated time.
                 .thenAwait(Duration.ofDays(2))
                 .expectNext(0L)
                 .expectNext(1L)
-                .thenCancel() // if not present, the interval() would produce events indefinitely.
+                .thenCancel() // if not present, the interval() would produce events indefinitely (because it was created without a call to take())
                 .verify();
 
         // another way of using thenAwait()
@@ -202,21 +203,21 @@ public class FluxTest {
 
         StepVerifier.create(connectableFlux)
                 .then(connectableFlux::connect)
-                .thenConsumeWhile(i -> i <= 5) // basically ignores the first 5 elements
+                .thenConsumeWhile(i -> i <= 5) // Basically 'ignores' the first 5 elements.
                 .expectNext(6, 7, 8, 9, 10)
                 .verifyComplete();
     }
 
     @Test
     void ConnectableFlux_AutoConnect() {
-        final Flux<Integer> autoConnect = Flux.range(1, 5)
+        final Flux<Integer> flux = Flux.range(1, 5)
                 .log()
                 .limitRate(2)
                 .publish()
                 .autoConnect(2); // defines the minimum number of subscribers before the Publisher begins to emit events.
 
-        StepVerifier.create(autoConnect)
-                .then(autoConnect::subscribe) // if not present, the Publisher will make the main thread wait until there are enough subscribers.
+        StepVerifier.create(flux)
+                .then(flux::subscribe) // Subscribes a second time.
                 .expectNext(1, 2, 3, 4, 5)
                 .verifyComplete();
     }
