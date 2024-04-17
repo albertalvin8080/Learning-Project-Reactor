@@ -199,8 +199,22 @@ public class FluxTest {
 
         StepVerifier.create(connectableFlux)
                 .then(connectableFlux::connect)
-                .thenConsumeWhile(i -> i<= 5)
+                .thenConsumeWhile(i -> i <= 5) // ignores the first 5 elements
                 .expectNext(6, 7, 8, 9, 10)
+                .verifyComplete();
+    }
+
+    @Test
+    void ConnectableFlux_AutoConnect() {
+        final Flux<Integer> autoConnect = Flux.range(1, 5)
+                .log()
+                .limitRate(2)
+                .publish()
+                .autoConnect(2); // defines the minimum number of subscribers before the Publisher begins to emit events.
+
+        StepVerifier.create(autoConnect)
+                .then(autoConnect::subscribe) // if not present, the Publisher will make the main thread wait until there are enough subscribers.
+                .expectNext(1, 2, 3, 4, 5)
                 .verifyComplete();
     }
 }
