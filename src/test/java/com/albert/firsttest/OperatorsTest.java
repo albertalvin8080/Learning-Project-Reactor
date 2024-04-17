@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 /*
  * Note to self: you used the word 'flux' (uncased) meaning 'stream of data/events' in the comments.
@@ -192,6 +193,16 @@ public class OperatorsTest {
         Thread.sleep(100);
         mono.subscribe(l -> log.info("{}", l));
         Thread.sleep(100);
+        mono.subscribe(l -> log.info("{}", l));
+        Thread.sleep(100);
+
+        AtomicLong atomicLong = new AtomicLong();
+        // Sets the value of the AtomicLong to the value returned by the Supplier<> previously sent to defer().
+//        mono.subscribe(l -> atomicLong.set(l));
+        mono.subscribe(atomicLong::set);
+
+        Assertions.assertTrue(atomicLong.get() != 0);
+        log.info("AtomicLong: {}", atomicLong.get());
     }
 
     @Test
@@ -199,6 +210,7 @@ public class OperatorsTest {
         final Flux<String> flux1 = Flux.just("A", "B");
         final Flux<String> flux2 = Flux.just("C", "D");
 
+        // concat() and concatWith() are lazy operators (they wait for the completion of the Publishers).
 //        final Flux<String> concat = Flux.concat(flux1, flux2).log();
         final Flux<String> concat = flux1.concatWith(flux2).log();
 
@@ -206,6 +218,30 @@ public class OperatorsTest {
                 .expectSubscription()
                 .expectNext("A", "B", "C", "D")
                 .verifyComplete();
+    }
+
+    @Test
+    void Operator_ConcatDelayError() {
+        final Flux<String> flux1 = Flux.just("A", "B");
+        final Flux<String> flux3 = Flux.just("E", "F");
+        final Flux<String> flux2 = Flux.just("C", "D")
+                .map(str -> {
+                    if (str.equals("C")) {
+                        throw new IllegalArgumentException("'B' is not allowed.");
+                    }
+                    return str;
+                });
+
+        // Delays the error, so the events emitted by OTHER STREAMS after the error occurrence won't be lost.
+        // However, other elements emitted by the SAME STREAM where the error occurred WILL BE LOST.
+        final Flux<String> concatDelayError = Flux.concatDelayError(flux1, flux2, flux3).log();
+
+        StepVerifier
+                .create(concatDelayError)
+                .expectSubscription()
+                .expectNext("A", "B", "E", "F")
+                .expectError(IllegalArgumentException.class)
+                .verify();
     }
 
     @Test
@@ -228,6 +264,63 @@ public class OperatorsTest {
                 .create(combinedLatest)
                 .expectSubscription()
                 .expectNext("B:C", "B:D") // Lucky based, not reliable.
+                .verifyComplete();
+    }
+
+    @Test
+    void Operator_MergeAndMergeWith() {
+        final Flux<String> flux1 = Flux.just("A", "B").delayElements(Duration.ofMillis(1000));
+        final Flux<String> flux2 = Flux.just("C", "D");
+
+        /*
+         * merge/mergeWith(...) is an eager operator. It doesn't wait for the completion of each Subscriber to begin merging events.
+         * */
+//        final Flux<String> merge = Flux.merge(flux1, flux2).log();
+        final Flux<String> merge = flux1.mergeWith(flux2).log();
+
+        StepVerifier.create(merge)
+                .expectSubscription()
+                .expectNext("C", "D", "A", "B") // Not always right due to multithreading, as always.
+                .verifyComplete();
+    }
+
+    @Test
+    void Operator_MergeDelayError() {
+        final Flux<String> flux1 = Flux.just("A", "B");
+        final Flux<String> flux3 = Flux.just("E", "F");
+        final Flux<String> flux2 = Flux.just("C", "D")
+                .handle((str, sink) -> {
+                    if (str.equals("C")) {
+                        sink.error(new IllegalArgumentException("'C' is not allowed."));
+                        return;
+                    }
+                    sink.next(str);
+                });
+
+        // Delays the error, so the events emitted by OTHER STREAMS after the error occurrence won't be lost.
+        // However, other elements emitted by the SAME STREAM where the error occurred WILL BE LOST.
+        final Flux<String> mergedDelayError = Flux.mergeDelayError(1, flux1, flux2, flux3).log();
+
+        StepVerifier.create(mergedDelayError)
+                .expectSubscription()
+                .expectNext("A", "B", "E", "F")
+                .expectError(IllegalArgumentException.class)
+                .verify();
+    }
+
+    @Test
+    void Operator_MergeSequential() {
+        final Flux<String> flux1 = Flux.just("A", "B").delayElements(Duration.ofMillis(1000));
+        final Flux<String> flux2 = Flux.just("C", "D").delayElements(Duration.ofMillis(300));
+        final Flux<String> flux3 = Flux.just("E", "F");
+
+        // Unlike concat, sources are subscribed to eagerly.
+        // Unlike merge, their emitted values are merged into the final sequence in subscription order.
+        final Flux<String> mergeSequential = Flux.mergeSequential(flux1, flux2, flux3).log();
+
+        StepVerifier.create(mergeSequential)
+                .expectSubscription()
+                .expectNext("A", "B", "C", "D", "E", "F")
                 .verifyComplete();
     }
 }
