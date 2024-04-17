@@ -6,11 +6,10 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 /*
-* Note to self: remember to see the theoretical concepts in your notebook.
-* */
+ * Note to self: remember to see the theoretical concepts in your notebook.
+ * */
 @Slf4j
-public class MonoTest
-{
+public class MonoTest {
     private final String text = "Gena";
 
     @Test
@@ -22,6 +21,7 @@ public class MonoTest
         log.info("---------------------------------------------------------");
 
         StepVerifier.create(mono)
+                .expectSubscription()
                 .expectNext(text)
                 .verifyComplete();
     }
@@ -43,14 +43,14 @@ public class MonoTest
     void Mono_ErrorConsumer() {
         final Mono<String> mono = Mono.just(text)
                 .log()
-                .map(s -> {
-                    throw new RuntimeException("Programmed Error");
+                .handle((s, sink) -> {
+                    sink.error(new RuntimeException("Programmed Error"));
                 }); // for testing only
 
         mono.subscribe(
                 s -> log.info("Value: {}", s),
-//                e -> log.error("Something bad happened: {}", e.getMessage()) // error consumer
-                Throwable::printStackTrace
+                e -> log.error("Something bad happened: {}", e.getMessage()) // error consumer
+//                Throwable::printStackTrace
         );
         log.info("---------------------------------------------------------");
 

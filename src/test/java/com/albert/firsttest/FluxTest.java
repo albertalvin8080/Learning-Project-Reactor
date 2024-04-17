@@ -12,6 +12,9 @@ import reactor.test.StepVerifier;
 import java.time.Duration;
 import java.util.List;
 
+/*
+ * Note to self: you used the word 'flux' (uncased) meaning 'stream of data/events' in the comments.
+ * */
 @Slf4j
 public class FluxTest {
     private final List<String> names = List.of("Heide", "Old Golem", "Heide Knight");
@@ -199,7 +202,7 @@ public class FluxTest {
 
         StepVerifier.create(connectableFlux)
                 .then(connectableFlux::connect)
-                .thenConsumeWhile(i -> i <= 5) // ignores the first 5 elements
+                .thenConsumeWhile(i -> i <= 5) // basically ignores the first 5 elements
                 .expectNext(6, 7, 8, 9, 10)
                 .verifyComplete();
     }
