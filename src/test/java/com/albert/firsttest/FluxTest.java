@@ -1,9 +1,11 @@
 package com.albert.firsttest;
 
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
+import reactor.blockhound.BlockHound;
 import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
@@ -18,6 +20,11 @@ import java.util.List;
 @Slf4j
 public class FluxTest {
     private final List<String> names = List.of("Heide", "Old Golem", "Heide Knight");
+
+    @BeforeAll
+    static void installBlockHound() {
+        BlockHound.install();
+    }
 
     @Test
     void Flux_FromIterable() {

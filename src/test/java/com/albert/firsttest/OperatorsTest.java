@@ -1,13 +1,18 @@
 package com.albert.firsttest;
 
+import com.albert.firsttest.model.Product;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import reactor.blockhound.BlockHound;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
+import reactor.util.function.Tuple2;
 
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -19,6 +24,11 @@ import java.util.concurrent.atomic.AtomicLong;
  * */
 @Slf4j
 public class OperatorsTest {
+
+    @BeforeAll
+    static void setUp() {
+        BlockHound.install();
+    }
 
     @Test
     void Operator_SubscribeOn() {
@@ -321,6 +331,95 @@ public class OperatorsTest {
         StepVerifier.create(mergeSequential)
                 .expectSubscription()
                 .expectNext("A", "B", "C", "D", "E", "F")
+                .verifyComplete();
+    }
+
+    @Test
+    void Operator_FlatMap() throws InterruptedException {
+        final Flux<String> flux = Flux.just("a", "b")
+                .map(String::toUpperCase)
+                .flatMap(this::getFluxName) // Eager operator. Doesn't wait for the completion of the first Publisher.
+                .log();
+
+//        flux.subscribe();
+//        Thread.sleep(1000); // Necessary because of delayElements(...).
+
+        StepVerifier
+                .create(flux)
+                .expectSubscription()
+                .expectNext("NameB1", "NameB2", "NameA1", "NameA2")
+                .verifyComplete();
+    }
+
+    private Flux<String> getFluxName(String name) {
+        return "A".equals(name) ?
+                Flux.just("NameA1", "NameA2").delayElements(Duration.ofMillis(100))
+                : Flux.just("NameB1", "NameB2");
+    }
+
+    @Test
+    void Operator_FlatMapSequential() throws InterruptedException {
+        final Flux<String> flux = Flux.just("a", "b")
+                .map(String::toUpperCase)
+                .flatMapSequential(this::getFluxName) // The final Flux<> preserves the order of the events.
+                .log();
+
+//        flux.subscribe();
+//        Thread.sleep(1000); // flatMapSequential(...) uses parallel threads for all events.
+
+        StepVerifier.create(flux)
+                .expectSubscription()
+                .expectNext("NameA1", "NameA2", "NameB1", "NameB2")
+                .verifyComplete();
+    }
+
+    @Test
+    void Operator_Zip() {
+        final Flux<Long> flux1 = Flux.just(101L, 102L);
+        final Flux<String> flux2 = Flux.just("TV", "Ear-con");
+        final Flux<Double> flux3 = Flux.just(299.90, 500.0);
+
+        final Flux<Product> productFlux = Flux
+                .zip(flux1, flux2, flux3) // Combines events from different Publishers.
+                .map(tuple -> new Product(
+                        tuple.getT1(),
+                        tuple.getT2(),
+                        BigDecimal.valueOf(tuple.getT3())
+                ))
+                .log();
+
+        StepVerifier.create(productFlux)
+                .expectSubscription()
+                .thenConsumeWhile(p -> {
+                    log.info(p.toString());
+                    Assertions.assertNotNull(p);
+//                    Assertions.assertNull(p);
+                    return true;
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void Operator_ZipWith() {
+//        final Flux<Long> flux1 = Flux.just(101L, 102L); // You would need to use Flux.zip(...) to apply this value too.
+        final Flux<String> flux2 = Flux.just("TV", "Ear-con");
+        final Flux<Double> flux3 = Flux.just(299.90, 500.0);
+
+        final Flux<Product> productFlux = flux2.zipWith(flux3) // Accepts only one publisher at a time.
+                .map(tuple -> new Product(
+                        null,
+                        tuple.getT1(),
+                        BigDecimal.valueOf(tuple.getT2())
+                ))
+                .log();
+
+        StepVerifier.create(productFlux)
+                .expectSubscription()
+                .thenConsumeWhile(p -> {
+                    log.info(p.toString());
+                    Assertions.assertNotNull(p);
+                    return true;
+                })
                 .verifyComplete();
     }
 }

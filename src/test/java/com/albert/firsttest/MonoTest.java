@@ -1,7 +1,9 @@
 package com.albert.firsttest;
 
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import reactor.blockhound.BlockHound;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -11,6 +13,11 @@ import reactor.test.StepVerifier;
 @Slf4j
 public class MonoTest {
     private final String text = "Gena";
+
+    @BeforeAll
+    static void installBlockHound() {
+        BlockHound.install();
+    }
 
     @Test
     void Mono_Testing() {
