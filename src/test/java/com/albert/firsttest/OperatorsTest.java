@@ -23,15 +23,15 @@ import java.util.concurrent.atomic.AtomicLong;
  * Note to self: you used the word 'flux' (uncased) meaning 'stream of data/events' in the comments.
  * */
 @Slf4j
-public class OperatorsTest {
-
+public class OperatorsTest
+{
     @BeforeAll
-    static void setUp() {
+    public static void setUp() {
         BlockHound.install();
     }
 
     @Test
-    void Operator_SubscribeOn() {
+    public void Operator_SubscribeOn() {
         final Flux<Integer> flux = Flux.range(1, 5)
                 .map(i -> {
                     log.info("map-1: {}, {}", Thread.currentThread().getName(), i);
@@ -48,7 +48,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_PublishOn() {
+    public void Operator_PublishOn() {
         final Flux<Integer> flux = Flux.range(1, 5)
                 .map(i -> {
                     log.info("map-1: {}, {}", Thread.currentThread().getName(), i);
@@ -65,7 +65,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void MultipleOperators_SubscribeOn() {
+    public void MultipleOperators_SubscribeOn() {
         final Flux<Integer> flux = Flux.range(1, 5)
                 // The first call to subscribeOn() overlaps subsequent calls.
                 .subscribeOn(Schedulers.boundedElastic())
@@ -83,7 +83,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void MultipleOperators_PublishOn() {
+    public void MultipleOperators_PublishOn() {
         /*
          * PublishOn(...) allows the existence of more than one Scheduler to
          * manage the operations in the same flux (Unlike subscribeOn(...))
@@ -105,7 +105,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void MergingOperators_PublishOnWithSubscribeOn() {
+    public void MergingOperators_PublishOnWithSubscribeOn() {
         /*
          * publishOn(...) has precedence over subscribeOn(...), so in this order,
          * the call for subscribeOn(...) doesn't add another Scheduler to manage the flux.
@@ -126,7 +126,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void MergingOperators_SubscribeOnWithPublishOn() {
+    public void MergingOperators_SubscribeOnWithPublishOn() {
         /*
          * Starting with subscribeOn(...), the first map() is managed by the Scheduler passed to it,
          * and the second Scheduler, passed to publishOn(...), takes the management of the subsequent map.
@@ -147,7 +147,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_FromCallable() throws InterruptedException {
+    public void Operator_FromCallable() throws InterruptedException {
         /*
          * This is the way in which you should communicate with external APIs.
          * */
@@ -174,7 +174,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_SwitchIfEmpty() {
+    public void Operator_SwitchIfEmpty() {
         final String text = "Heide";
         final Flux<Object> flux = generateEmptyFlux()
                 .switchIfEmpty(Flux.just(text, text, text)) // Imperative way of using switch/if
@@ -192,7 +192,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_Defer() throws InterruptedException {
+    public void Operator_Defer() throws InterruptedException {
         final Mono<Long> mono = Mono
                 // Generates a different stream of events for each Subscriber.
                 .defer(() -> Mono.just(System.currentTimeMillis()));
@@ -216,7 +216,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_ConcatAndConcatWith() {
+    public void Operator_ConcatAndConcatWith() {
         final Flux<String> flux1 = Flux.just("A", "B");
         final Flux<String> flux2 = Flux.just("C", "D");
 
@@ -231,7 +231,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_ConcatDelayError() {
+    public void Operator_ConcatDelayError() {
         final Flux<String> flux1 = Flux.just("A", "B");
         final Flux<String> flux3 = Flux.just("E", "F");
         final Flux<String> flux2 = Flux.just("C", "D")
@@ -255,7 +255,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_CombineLast() {
+    public void Operator_CombineLast() {
 //        final Flux<String> flux1 = Flux.just("A", "B").delayElements(Duration.ofMillis(1000));
         final Flux<String> flux1 = Flux.just("A", "B");
         final Flux<String> flux2 = Flux.just("C", "D");
@@ -278,7 +278,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_MergeAndMergeWith() {
+    public void Operator_MergeAndMergeWith() {
         final Flux<String> flux1 = Flux.just("A", "B").delayElements(Duration.ofMillis(1000));
         final Flux<String> flux2 = Flux.just("C", "D");
 
@@ -295,7 +295,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_MergeDelayError() {
+    public void Operator_MergeDelayError() {
         final Flux<String> flux1 = Flux.just("A", "B");
         final Flux<String> flux3 = Flux.just("E", "F");
         final Flux<String> flux2 = Flux.just("C", "D")
@@ -319,7 +319,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_MergeSequential() {
+    public void Operator_MergeSequential() {
         final Flux<String> flux1 = Flux.just("A", "B").delayElements(Duration.ofMillis(1000));
         final Flux<String> flux2 = Flux.just("C", "D").delayElements(Duration.ofMillis(300));
         final Flux<String> flux3 = Flux.just("E", "F");
@@ -335,7 +335,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_FlatMap() throws InterruptedException {
+    public void Operator_FlatMap() throws InterruptedException {
         final Flux<String> flux = Flux.just("a", "b")
                 .map(String::toUpperCase)
                 .flatMap(this::getFluxName) // Eager operator. Doesn't wait for the completion of the first Publisher.
@@ -358,7 +358,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_FlatMapSequential() throws InterruptedException {
+    public void Operator_FlatMapSequential() throws InterruptedException {
         final Flux<String> flux = Flux.just("a", "b")
                 .map(String::toUpperCase)
                 .flatMapSequential(this::getFluxName) // The final Flux<> preserves the order of the events.
@@ -374,7 +374,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_Zip() {
+    public void Operator_Zip() {
         final Flux<Long> flux1 = Flux.just(101L, 102L);
         final Flux<String> flux2 = Flux.just("TV", "Ear-con");
         final Flux<Double> flux3 = Flux.just(299.90, 500.0);
@@ -400,7 +400,7 @@ public class OperatorsTest {
     }
 
     @Test
-    void Operator_ZipWith() {
+    public void Operator_ZipWith() {
 //        final Flux<Long> flux1 = Flux.just(101L, 102L); // You would need to use Flux.zip(...) to apply this value too.
         final Flux<String> flux2 = Flux.just("TV", "Ear-con");
         final Flux<Double> flux3 = Flux.just(299.90, 500.0);

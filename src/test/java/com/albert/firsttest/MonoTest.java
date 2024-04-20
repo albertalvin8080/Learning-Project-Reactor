@@ -11,16 +11,17 @@ import reactor.test.StepVerifier;
  * Note to self: remember to see the theoretical concepts in your notebook.
  * */
 @Slf4j
-public class MonoTest {
+public class MonoTest
+{
     private final String text = "Gena";
 
     @BeforeAll
-    static void installBlockHound() {
+    public static void installBlockHound() {
         BlockHound.install();
     }
 
     @Test
-    void Mono_Testing() {
+    public void Mono_Testing() {
         final Mono<String> mono = Mono.just(text)
                 .log();
 
@@ -34,7 +35,7 @@ public class MonoTest {
     }
 
     @Test
-    void Mono_SubscriberConsumer() {
+    public void Mono_SubscriberConsumer() {
         final Mono<String> mono = Mono.just(text)
                 .log();
 
@@ -47,7 +48,7 @@ public class MonoTest {
     }
 
     @Test
-    void Mono_ErrorConsumer() {
+    public void Mono_ErrorConsumer() {
         final Mono<String> mono = Mono.just(text)
                 .log()
                 .handle((s, sink) -> {
@@ -67,7 +68,7 @@ public class MonoTest {
     }
 
     @Test
-    void Mono_CompleteConsumer() {
+    public void Mono_CompleteConsumer() {
         final Mono<String> mono = Mono.just(text)
                 .map(String::toUpperCase)
                 .log();
@@ -85,7 +86,7 @@ public class MonoTest {
     }
 
     @Test
-    void Mono_SubscriptionConsumer() {
+    public void Mono_SubscriptionConsumer() {
         final Mono<String> mono = Mono.just(text).log();
 
         // Note: we're trying to test the Subscriber here, not the Publisher.
@@ -108,7 +109,7 @@ public class MonoTest {
     }
 
     @Test
-    void Mono_DoOnSubscribe_Request_Next_Success() {
+    public void Mono_DoOnSubscribe_Request_Next_Success() {
         final Mono<String> mono = Mono.just(text)
                 .doOnSubscribe(s -> log.info("SUBSCRIBED: {}", s))
                 .doOnRequest(l -> log.info("REQUESTED: {}", l))
@@ -122,7 +123,7 @@ public class MonoTest {
     }
 
     @Test
-    void Mono_DoOnError() {
+    public void Mono_DoOnError() {
         final Mono<Object> mono = Mono.error(new IllegalArgumentException("It's what it says."))
                 .doOnError(e -> log.info("ERROR: {}", e.getMessage()));
 
@@ -132,7 +133,7 @@ public class MonoTest {
     }
 
     @Test
-    void Mono_OnErrorReturn_OnErrorResume() {
+    public void Mono_OnErrorReturn_OnErrorResume() {
         final String fallbackValue = "Fallback Value";
 
         final Mono<Object> mono = Mono.error(new IllegalArgumentException("It's what it says."))

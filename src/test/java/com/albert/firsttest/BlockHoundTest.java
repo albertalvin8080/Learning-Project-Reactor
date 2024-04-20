@@ -6,11 +6,11 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
-public class BlockHoundTest {
-
+public class BlockHoundTest
+{
     // Example extracted from https://github.com/reactor/BlockHound
     @Test
-    void Test() {
+    public void Test() {
 //        BlockHound.install();
         BlockHound.install(builder -> builder.allowBlockingCallsInside( // Allows blocking int this case
                 "reactor.core.publisher.MonoDelay$MonoDelayRunnable",
