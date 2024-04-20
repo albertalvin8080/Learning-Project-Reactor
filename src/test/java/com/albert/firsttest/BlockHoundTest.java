@@ -12,7 +12,7 @@ public class BlockHoundTest
     @Test
     public void Test() {
 //        BlockHound.install();
-        BlockHound.install(builder -> builder.allowBlockingCallsInside( // Allows blocking int this case
+        BlockHound.install(builder -> builder.allowBlockingCallsInside( // Allows blocking, in this case
                 "reactor.core.publisher.MonoDelay$MonoDelayRunnable",
                 "run")
         );
